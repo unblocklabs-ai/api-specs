@@ -1,0 +1,23 @@
+name: Validate OpenAPI specifications
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  redocly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Snapchat Marketing API
+        env:
+          REDOCLY_TELEMETRY: off
+        run: npx --yes @redocly/cli@2.38.0 lint snapchat-marketing/v1/openapi.yml
