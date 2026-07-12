@@ -16,3 +16,16 @@ be checked against the upstream documentation linked in the contract metadata.
 Raw URL:
 
 `https://raw.githubusercontent.com/unblocklabs-ai/api-specs/main/snapchat-marketing/v1/openapi.yml`
+
+## Lightreel API
+
+The Lightreel API contract is maintained at:
+
+`lightreel/v1/openapi.yml`
+
+It is generated from Lightreel's API cURL reference and describes the chat,
+chat transcript, and chat listing endpoints.
+
+Raw URL:
+
+`https://raw.githubusercontent.com/unblocklabs-ai/api-specs/main/lightreel/v1/openapi.yml`

@@ -21,3 +21,7 @@ jobs:
         env:
           REDOCLY_TELEMETRY: off
         run: npx --yes @redocly/cli@2.38.0 lint snapchat-marketing/v1/openapi.yml
+      - name: Validate Lightreel API
+        env:
+          REDOCLY_TELEMETRY: off
+        run: npx --yes @redocly/cli@2.38.0 lint lightreel/v1/openapi.yml

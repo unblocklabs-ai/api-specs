@@ -1,0 +1,259 @@
+openapi: 3.1.0
+info:
+  title: Lightreel API
+  version: 1.0.0
+  description: API specification generated from the provided Lightreel cURL reference.
+servers:
+  - url: https://api.lightreel.ai
+security:
+  - bearerAuth: []
+paths:
+  /v1/chat:
+    post:
+      operationId: createChatMessage
+      summary: Ask the Lightreel agent a question
+      description: >
+        Ask the Lightreel agent a question. The response `answer` is a string for
+        normal prose responses, or an object when `response_fields` is supplied.
+        Requests can run live for several minutes, so clients should use a
+        generous timeout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              basic:
+                summary: Ask a question
+                value:
+                  question: find me the top fitness hooks this week
+              continueConversation:
+                summary: Continue a conversation
+                value:
+                  question: go deeper on the strongest three hooks
+                  conversation_id: conv_123
+              structuredOutput:
+                summary: Request structured output
+                value:
+                  question: find me the top fitness hooks this week
+                  response_fields:
+                    hooks:
+                      type: array
+                      description: the hook lines
+                    summary:
+                      type: string
+                      description: one-paragraph recap
+      responses:
+        '200':
+          description: Chat response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                basic:
+                  value:
+                    answer: Here are the top fitness hooks this week...
+                    conversationId: conv_123
+                structured:
+                  value:
+                    answer:
+                      hooks:
+                        - Stop scrolling if your workouts feel random
+                        - The three-move test for real strength
+                      summary: Fitness hooks this week are direct, contrarian, and outcome-led.
+                    conversationId: conv_123
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /v1/chat/{id}:
+    get:
+      operationId: getChatTranscript
+      summary: Fetch a chat transcript
+      description: Fetch the full transcript for one prior API chat.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID returned as `conversationId` from `/v1/chat`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transcript response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptResponse'
+              example:
+                conversationId: conv_123
+                messages:
+                  - role: user
+                    question: find me the top fitness hooks this week
+                  - role: assistant
+                    answer: Here are the top fitness hooks this week...
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /v1/chats:
+    get:
+      operationId: listChats
+      summary: List latest API chats
+      description: List the authenticated account's latest 50 API chats.
+      responses:
+        '200':
+          description: Latest chats response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListChatsResponse'
+              example:
+                conversations:
+                  - id: conv_123
+                    createdAt: '2026-07-06T15:00:00Z'
+                    updatedAt: '2026-07-06T15:02:00Z'
+                    title: Top fitness hooks this week
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Lightreel API key
+      description: 'Use `Authorization: Bearer <Lightreel API key>`.'
+  responses:
+    ErrorResponse:
+      description: Error response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            authentication:
+              value:
+                error:
+                  message: Invalid API key
+                  type: authentication_error
+            invalidRequest:
+              value:
+                error:
+                  message: Missing required field `question`
+                  type: invalid_request_error
+  schemas:
+    ChatRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          minLength: 1
+          description: User question to ask the Lightreel agent.
+        conversation_id:
+          type: string
+          description: Prior `conversationId` returned by Lightreel. Include this to continue the same conversation.
+        response_fields:
+          type: object
+          maxProperties: 5
+          description: Optional structured output fields. Only requested keys are returned inside `answer`.
+          additionalProperties:
+            $ref: '#/components/schemas/ResponseField'
+    ResponseField:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          enum:
+            - string
+            - array
+        description:
+          type: string
+          minLength: 1
+    ChatResponse:
+      type: object
+      required:
+        - answer
+        - conversationId
+      properties:
+        answer:
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                      type: string
+          description: String for normal responses; object for structured responses.
+        conversationId:
+          type: string
+          description: Conversation ID to pass back as `conversation_id` on later requests.
+    TranscriptResponse:
+      type: object
+      required:
+        - messages
+      properties:
+        conversationId:
+          type: string
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              question:
+                type: string
+              answer:
+                oneOf:
+                  - type: string
+                  - type: object
+                    additionalProperties: true
+            additionalProperties: true
+    ListChatsResponse:
+      type: object
+      required:
+        - conversations
+      properties:
+        conversations:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - message
+            - type
+          properties:
+            message:
+              type: string
+            type:
+              type: string
+              examples:
+                - authentication_error
+                - invalid_request_error
